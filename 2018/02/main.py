@@ -1,5 +1,3 @@
-from itertools import groupby
-
 def different_char_indexes(s1, s2):
     indexes = []
     for index, char in enumerate(s1):
