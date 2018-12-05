@@ -1,5 +1,7 @@
 use std::fs::File;
 use std::io::prelude::*;
+use std::thread;
+use std::sync::mpsc;
 
 fn opposite_polarity(c1: char, c2: char) -> bool {
 	return (c1.is_uppercase() && c2.is_lowercase()) || (c1.is_lowercase() && c2.is_uppercase());
@@ -39,14 +41,23 @@ fn main() {
 	let mut size = react(&polymer);
 	println!("Part 1: {}", size);
 
+
+	let (tx, rx) = mpsc::channel();
+
 	for chr in b'a'..=b'z' {
-		let bad_unit = chr as char;
-
+		let tx = tx.clone();
 		let mut polymer = polymer.to_vec();
-		polymer.retain(|&c| !same_unit(c, bad_unit));
 
-		let adjusted_size = react(&polymer);
-		if adjusted_size < size { size = adjusted_size; }
+		thread::spawn(move || {
+				let bad_unit = chr as char;
+				polymer.retain(|&c| !same_unit(c, bad_unit));
+				tx.send(react(&polymer)).unwrap();
+		});
+	}
+
+	for _ in 0..26 {
+		let adjusted_size = rx.recv().unwrap();
+		if adjusted_size < size { size = adjusted_size }
 	}
 
 	println!("Part 2: {}", size);
