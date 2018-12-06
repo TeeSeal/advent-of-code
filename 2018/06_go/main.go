@@ -25,6 +25,32 @@ func (pt point) distanceFrom(b point) int {
 	return int(math.Abs(float64(pt.x-b.x)) + math.Abs(float64(pt.y-b.y)))
 }
 
+func (pt point) outOf(bounds []point) bool {
+	return pt.x == bounds[0].x || pt.y == bounds[0].y || pt.x == bounds[1].x || pt.y == bounds[1].y
+}
+
+func (pt point) inAreaOf(base point, all []point) bool {
+	for _, other := range all {
+		if other == base {
+			continue
+		}
+
+		if base.distanceFrom(pt) >= other.distanceFrom(pt) {
+			return false
+		}
+	}
+	return true
+}
+
+func contains(s []point, e point) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
 func readPointsFrom(filename string) (points []point) {
 	bytes, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -54,41 +80,15 @@ func readPointsFrom(filename string) (points []point) {
 	return
 }
 
-func contains(s []point, e point) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
-func inArea(pt, base point, all []point) (result bool) {
-	for _, other := range all {
-		if other == base {
-			continue
-		}
-
-		if base.distanceFrom(pt) >= other.distanceFrom(pt) {
-			return false
-		}
-	}
-	return true
-}
-
-func outOfBounds(pt point, bounds []point) bool {
-	return pt.x == bounds[0].x || pt.y == bounds[0].y || pt.x == bounds[1].x || pt.y == bounds[1].y
-}
-
 func check(pt, base point, all, used, bounds []point) (result int, newUsed []point) {
 	result = 0
 	newUsed = used
 
-	if pt == base || contains(newUsed, pt) || !inArea(pt, base, all) {
+	if pt == base || contains(newUsed, pt) || !pt.inAreaOf(base, all) {
 		return
 	}
 
-	if outOfBounds(pt, bounds) {
+	if pt.outOf(bounds) {
 		// infinite area
 		return -1, newUsed
 	}
@@ -134,7 +134,7 @@ func main() {
 	var areas []int
 
 	for _, pt := range all {
-		if outOfBounds(pt, bounds) {
+		if pt.outOf(bounds) {
 			continue
 		}
 
