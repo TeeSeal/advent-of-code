@@ -3,12 +3,12 @@ use std::io::prelude::*;
 use std::thread;
 use std::sync::mpsc;
 
-fn opposite_polarity(c1: char, c2: char) -> bool {
-	return (c1.is_uppercase() && c2.is_lowercase()) || (c1.is_lowercase() && c2.is_uppercase());
-}
-
-fn same_unit(c1: char, c2: char) -> bool {
-	return c1.to_lowercase().to_string() == c2.to_lowercase().to_string();
+fn should_react(c1: char, c2: char) -> bool {
+	if c1.is_lowercase() {
+		return c1.to_ascii_uppercase() == c2
+	} else {
+		return c1.to_ascii_lowercase() == c2
+	}
 }
 
 fn react(polymer: &Vec<char>) -> usize {
@@ -19,7 +19,7 @@ fn react(polymer: &Vec<char>) -> usize {
 		let unit = units[i];
 		let next = units[i + 1];
 
-		if same_unit(unit, next) && opposite_polarity(unit, next) {
+		if should_react(unit, next) {
 			units.remove(i);
 			units.remove(i); // The elements are pushed back on first remove
 			if i > 0 { i -= 1; }
@@ -50,7 +50,7 @@ fn main() {
 
 		thread::spawn(move || {
 				let bad_unit = chr as char;
-				polymer.retain(|&c| !same_unit(c, bad_unit));
+				polymer.retain(|&c| c.to_ascii_lowercase() != bad_unit.to_ascii_lowercase());
 				tx.send(react(&polymer)).unwrap();
 		});
 	}
