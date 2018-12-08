@@ -12,43 +12,23 @@ type point struct {
 	x, y int
 }
 
-func (pt point) neighbors() []point {
-	return []point{
-		point{pt.x, pt.y - 1},
-		point{pt.x, pt.y + 1},
-		point{pt.x - 1, pt.y},
-		point{pt.x + 1, pt.y},
-	}
-}
-
 func (pt point) distanceFrom(b point) int {
 	return int(math.Abs(float64(pt.x-b.x)) + math.Abs(float64(pt.y-b.y)))
 }
 
-func (pt point) outOf(bounds []point) bool {
-	return pt.x == bounds[0].x || pt.y == bounds[0].y || pt.x == bounds[1].x || pt.y == bounds[1].y
-}
+func areaChecker(allNodes []point) func(point, point) bool {
+	return func(node, pt point) bool {
+		for _, other := range allNodes {
+			if other == node {
+				continue
+			}
 
-func (pt point) inAreaOf(base point, all []point) bool {
-	for _, other := range all {
-		if other == base {
-			continue
+			if node.distanceFrom(pt) >= other.distanceFrom(pt) {
+				return false
+			}
 		}
-
-		if base.distanceFrom(pt) >= other.distanceFrom(pt) {
-			return false
-		}
+		return true
 	}
-	return true
-}
-
-func contains(s []point, e point) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
 }
 
 func readPointsFrom(filename string) (points []point) {
@@ -80,39 +60,40 @@ func readPointsFrom(filename string) (points []point) {
 	return
 }
 
-func check(pt, base point, all, used, bounds []point) (result int, newUsed []point) {
-	result = 0
-	newUsed = used
-
-	if pt == base || contains(newUsed, pt) || !pt.inAreaOf(base, all) {
-		return
-	}
-
-	if pt.outOf(bounds) {
-		// infinite area
-		return -1, newUsed
-	}
-
-	newUsed = append(newUsed, pt)
-	result++
-
-	var add int
-	for _, neighbor := range pt.neighbors() {
-		add, newUsed = check(neighbor, base, all, newUsed, bounds)
-		if add == -1 {
-			return -1, newUsed
+func includes(nodes []point, node point) bool {
+	for _, pt := range nodes {
+		if pt == node {
+			return true
 		}
-		result += add
 	}
+	return false
+}
 
+func filter(nodes []point, check func(point) bool) (result []point) {
+	for _, node := range nodes {
+		if check(node) {
+			result = append(result, node)
+		}
+	}
+	return
+}
+
+func max(slice []int) (result int) {
+	result = slice[0]
+	for _, x := range slice {
+		if x > result {
+			result = x
+		}
+	}
 	return
 }
 
 func main() {
-	all := readPointsFrom("input.txt")
+	nodes := readPointsFrom("input.txt")
+	sameArea := areaChecker(nodes)
 
-	bounds := []point{point{all[0].x, all[0].y}, point{all[0].x, all[0].y}}
-	for _, pt := range all {
+	bounds := []point{point{nodes[0].x, nodes[0].y}, point{nodes[0].x, nodes[0].y}}
+	for _, pt := range nodes {
 		if pt.x < bounds[0].x {
 			bounds[0].x = pt.x
 		}
@@ -127,61 +108,51 @@ func main() {
 		}
 	}
 
-	used := make([]point, len(all))
-	copy(used, all)
-
-	var add int
-	var areas []int
-
-	for _, pt := range all {
-		if pt.outOf(bounds) {
-			continue
-		}
-
-		area := 1
-		infinite := false
-
-		for _, neighbor := range pt.neighbors() {
-			add, used = check(neighbor, pt, all, used, bounds)
-
-			if add == -1 {
-				infinite = true
-				break
+	// Find all nodes with infinite areas
+	var notGucciNodes []point
+	for y := bounds[0].y; y <= bounds[1].y; y++ {
+		for x := bounds[0].x; x <= bounds[1].x; x++ {
+			if y != bounds[0].y && y != bounds[1].y && x > bounds[0].x && x < bounds[1].x {
+				continue
 			}
 
-			area += add
-		}
+			pt := point{x, y}
 
-		if !infinite {
-			areas = append(areas, area)
-		}
-	}
-
-	max := 0
-	for _, area := range areas {
-		if area > max {
-			max = area
-		}
-	}
-
-	fmt.Println("Part 1:", max)
-
-	var safepts []point
-
-	for i := bounds[0].x + 1; i < bounds[1].x; i++ {
-		for j := bounds[0].y + 1; j < bounds[1].y; j++ {
-			pt := point{i, j}
-
-			sum := 0
-			for _, node := range all {
-				sum += pt.distanceFrom(node)
-			}
-
-			if sum < 10000 {
-				safepts = append(safepts, pt)
+			for _, node := range nodes {
+				if sameArea(node, pt) {
+					notGucciNodes = append(notGucciNodes, node)
+					break
+				}
 			}
 		}
 	}
 
-	fmt.Println("Part 2:", len(safepts))
+	gucciNodes := filter(nodes, func(node point) bool { return !includes(notGucciNodes, node) })
+	areas := make([]int, len(gucciNodes))
+	safepts := 0
+
+	for y := bounds[0].y + 1; y < bounds[1].y; y++ {
+		for x := bounds[0].x + 1; x < bounds[1].x; x++ {
+			pt := point{x, y}
+
+			for i, node := range gucciNodes {
+				if sameArea(node, pt) {
+					areas[i]++
+					break
+				}
+			}
+
+			distanceSum := 0
+			for _, node := range nodes {
+				distanceSum += pt.distanceFrom(node)
+			}
+
+			if distanceSum < 10000 {
+				safepts++
+			}
+		}
+	}
+
+	fmt.Println("Part 1:", max(areas))
+	fmt.Println("Part 2:", safepts)
 }
