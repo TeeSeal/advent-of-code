@@ -41,7 +41,6 @@ fn main() {
 	let mut size = react(&polymer);
 	println!("Part 1: {}", size);
 
-
 	let (tx, rx) = mpsc::channel();
 
 	for chr in b'a'..=b'z' {
@@ -49,9 +48,9 @@ fn main() {
 		let mut polymer = polymer.to_vec();
 
 		thread::spawn(move || {
-				let bad_unit = chr as char;
-				polymer.retain(|&c| c.to_ascii_lowercase() != bad_unit.to_ascii_lowercase());
-				tx.send(react(&polymer)).unwrap();
+			let bad_unit = chr as char;
+			polymer.retain(|&c| c.to_ascii_lowercase() != bad_unit.to_ascii_lowercase());
+			tx.send(react(&polymer)).unwrap();
 		});
 	}
 
