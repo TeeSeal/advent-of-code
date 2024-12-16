@@ -21,10 +21,12 @@ def is_report_kinda_safe(report: Sequence[int]) -> bool:
 
     for i in range(len(report)):
         report_copy = list(report).copy()
-        del report_copy[i];
+        del report_copy[i]
 
         if is_report_safe(report_copy):
             return True
+
+    return False
 
 
 part_1 = [is_report_safe(report) for report in reports].count(True)
